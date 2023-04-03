@@ -5,7 +5,8 @@ import logging
 import pyodbc
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup
-from aiogram.utils.markdown import link
+from aiogram.utils.markdown import link, hlink, hide_link
+from aiogram.methods.send_message import SendMessage
 
 import config
 # Импортируем настройки
@@ -17,7 +18,7 @@ from func import f_contract_code, f_get_balance, f_get_payments, f_get_grant_on_
 from office import office_address
 
 # Включим логирование
-logging.basicConfig(level=logging.DEBUG, filename="DEBUG_log.log", filemode="a")
+logging.basicConfig(level=logging.DEBUG)#, filename="DEBUG_log.log", filemode="a")
 
 # Отдадим боту его токен
 bot = Bot(config.TOKEN)  # Для aiogram
@@ -94,8 +95,8 @@ async def contact(message):  # Проверка отправителя и отп
 						if c_code is None:
 							await bot.send_message(message.chat.id,
 							                       'Номер телефона не найден в биллинговой системе ООО "Связист".'
-							                       ' Зарегистрируйте его в ' + link('личном кабинете',
-							                                                        'https://bill.sv-tel.ru') +
+							                       ' Зарегистрируйте его в ' + link(title='личном кабинете',
+							                                                        url='https://bill.sv-tel.ru') +
 							                       'в разделе "Заявления - Получение уведомлений"')
 						else:
 							for row in c_code:
@@ -184,7 +185,7 @@ async def tech_claims(message: types.Message):
 	if contract_code[0] is not None:
 		claimslist = f_isTechClaims(contract_code)
 		if claimslist is not None:
-			await bot.send_message(user_id, 'Ниже выведены заявки в службу технической поддержки за последние 7 дней.')
+			await bot.send_message(user_id, 'Ниже выведены заявки в службу технической поддержки за последние 7 дней.',parse_mode='HTML')
 			#print(claimslist)
 			for index in range(len(claimslist)):
 				value = claimslist[index]
@@ -201,8 +202,9 @@ async def tech_claims(message: types.Message):
 				                       )
 		elif claimslist is None:
 			await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
-			                                'Если вы уверены, что это не так, обратитесь в техническую поддержку по телефону +78314577777'
-			                       )
+			                                'Если вы уверены, что это не так, обратитесь в '\
+			                       + hlink(title='техническую поддержку по телефону 8(83145)77777', url='tel:+78314577777')
+			                       , parse_mode='HTML')
 	elif contract_code[0] is None:
 		await bot.send_message(user_id, 'Не можем определить ваш номер договора по номеру телефона.'
 		                                ' Отправьте нам свой телефон, после чего повторно запросите заявки.')
