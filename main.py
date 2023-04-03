@@ -1,4 +1,3 @@
-import re
 import asyncio
 import datetime
 import logging
@@ -11,7 +10,7 @@ from aiogram.utils.markdown import link
 import config
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
-	APPLICATION_NAME, TOKEN
+	APPLICATION_NAME
 from func import f_contract_code, f_get_balance, f_get_payments, f_get_grant_on_phone, f_addUser, f_checkUserExists, \
 	f_updateUser, f_getLastPayment, f_send_PaymentNotify, f_isTechClaims, isC_Code, setPromesedPay, getClientCode
 # Импортируем адреса офисов и режим работы
