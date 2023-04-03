@@ -48,7 +48,6 @@ def f_get_payments(c_code):
 				return 'Null'
 			else:
 				return pay_result
-				conn.close
 		except:
 			conn = pyodbc.connect(conn_str)
 			conn.close()
