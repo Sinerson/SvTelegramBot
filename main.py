@@ -5,19 +5,19 @@ import logging
 import pyodbc
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup
-from aiogram.utils.markdown import link
+from aiogram.utils.markdown import link, hlink
 
 import config
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
-	APPLICATION_NAME
+	APPLICATION_NAME, TOKEN, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST
 from func import f_contract_code, f_get_balance, f_get_payments, f_get_grant_on_phone, f_addUser, f_checkUserExists, \
 	f_updateUser, f_getLastPayment, f_send_PaymentNotify, f_isTechClaims, isC_Code, setPromesedPay, getClientCode
 # Импортируем адреса офисов и режим работы
 from office import office_address
 
 # Включим логирование
-logging.basicConfig(level=logging.DEBUG, filename="DEBUG_log.log", filemode="a")
+logging.basicConfig(level=logging.DEBUG)#, filename="DEBUG_log.log", filemode="a")
 
 # Отдадим боту его токен
 bot = Bot(config.TOKEN)  # Для aiogram
@@ -94,8 +94,8 @@ async def contact(message):  # Проверка отправителя и отп
 						if c_code is None:
 							await bot.send_message(message.chat.id,
 							                       'Номер телефона не найден в биллинговой системе ООО "Связист".'
-							                       ' Зарегистрируйте его в ' + link('личном кабинете',
-							                                                        'https://bill.sv-tel.ru') +
+							                       ' Зарегистрируйте его в ' + link(title='личном кабинете',
+							                                                        url='https://bill.sv-tel.ru') +
 							                       'в разделе "Заявления - Получение уведомлений"')
 						else:
 							for row in c_code:
@@ -149,16 +149,17 @@ async def contact(message):  # Проверка отправителя и отп
 									                       'Ваш телефонный номер привязан к л/с организации Связист, вывод данных о балансе отменен.')
 								elif contract_code is None:
 									await bot.send_message(message.chat.id,
-									                       'Номер телефона не найден. Зарегистрируйте его в ' + link(
+									                       'Номер телефона не найден. Зарегистрируйте его в ' + hlink(
 										                       'личном кабинете', 'https://bill.sv-tel.ru') +
-									                       'в разделе "Заявления - Получение уведомлений"')
+									                       'в разделе "Заявления - Получение уведомлений"', parse_mode='HTML')
 								else:
 									await bot.send_message(message.chat.id, 'Что-то пошло совсем не так...')
 					elif checkPhone_result == "0" or checkPhone_result is None:
 						phonenumber = message.contact.phone_number
-						f_updateUser(phonenumber, None, message.from_user.id, message.chat.id)
+						contract_code = f_contract_code(phonenumber)
+						f_updateUser(phonenumber, contract_code[0][0], message.from_user.id, message.chat.id)
 						await bot.send_message(message.from_user.id,
-						                       "Номер сохранен, но нет разрешения на его добавление в базу нажмите /start если согласны...")
+						                       "Номер сохранен, разрешение на его использование получено. Нажмите /start для отображения меню.")
 			elif checkPhone == 'Null' or checkPhone is None:
 				await bot.send_message(message.from_user.id, 'Нажмите /start')
 		else:
@@ -184,7 +185,7 @@ async def tech_claims(message: types.Message):
 	if contract_code[0] is not None:
 		claimslist = f_isTechClaims(contract_code)
 		if claimslist is not None:
-			await bot.send_message(user_id, 'Ниже выведены заявки в службу технической поддержки за последние 7 дней.')
+			await bot.send_message(user_id, 'Ниже выведены заявки в службу технической поддержки за последние 7 дней.',parse_mode='HTML')
 			#print(claimslist)
 			for index in range(len(claimslist)):
 				value = claimslist[index]
@@ -201,8 +202,9 @@ async def tech_claims(message: types.Message):
 				                       )
 		elif claimslist is None:
 			await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
-			                                'Если вы уверены, что это не так, обратитесь в техническую поддержку по телефону +78314577777'
-			                       )
+			                                'Если вы уверены, что это не так, обратитесь в '\
+			                       + hlink(title='техническую поддержку по телефону 8(83145)77777', url='tel:+78314577777')
+			                       , parse_mode='HTML')
 	elif contract_code[0] is None:
 		await bot.send_message(user_id, 'Не можем определить ваш номер договора по номеру телефона.'
 		                                ' Отправьте нам свой телефон, после чего повторно запросите заявки.')
@@ -248,13 +250,13 @@ async def text(message):
 		                       parse_mode='Markdown')
 	elif message.from_user.id == 124902528 and user_message in ['параметры']:
 		await bot.send_message(message.chat.id,
-		                       'Token: ' + token + '\n' +
-		                       'Channel: ' + channel_id + '\n' +
-		                       'Sber Token: ' + SberToken + '\n' +
-		                       server + '\n' +
-		                       port + '\n' +
-		                       user + '\n' +
-		                       pw + '\n')
+		                       'Token: ' + TOKEN + '\n' +
+		                       'Channel: ' + CHANNEL_ID + '\n' +
+		                       'Sber Token: ' + BANK_TOKEN + '\n' +
+		                       SERVER + '\n' +
+		                       PORT + '\n' +
+		                       USER + '\n' +
+		                       PASSW + '\n')
 	elif message.text in ['айди', 'ай ди', 'chat id', 'чат']:
 		await bot.send_message(message.chat.id, message.chat.id)
 	elif message.from_user.id == 124902528 and user_message in ['оплаты']:
@@ -270,6 +272,10 @@ async def text(message):
 			'«Абырва́лг» — второе (нередко цитируется как первое) слово, сказанное героем повести Михаила'
 			' Булгакова «Собачье сердце» Шариковым после его «оживления» в человеческом облике.'
 			' Слово прозвучало также в одноимённом фильме, снятом режиссёром Владимиром Бортко (1988)')
+	elif user_message in ['список'] and message.from_user.id == 124902528:
+		await bot.send_message(124902528, f'{len(USERS_ID_LIST)}')
+		await bot.send_message(124902528, USERS_ID_LIST)
+
 	else:
 		await message.answer('!АБЫРВАЛГ')
 
