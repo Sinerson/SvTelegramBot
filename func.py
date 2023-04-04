@@ -1,4 +1,6 @@
 # импортируем библиотеки аснихронности и работы с БД
+import timeit
+
 import pyodbc, asyncio
 # импортируем запросы
 from sql import checkPhone, checkUserExists, addUser, updateUser, getContractCode, getBalance, getPayments, \

@@ -1,6 +1,8 @@
 import asyncio
 import datetime
+import json
 import logging
+import timeit
 
 import pyodbc
 from aiogram import Bot, Dispatcher, types
@@ -272,9 +274,15 @@ async def text(message):
 			'«Абырва́лг» — второе (нередко цитируется как первое) слово, сказанное героем повести Михаила'
 			' Булгакова «Собачье сердце» Шариковым после его «оживления» в человеческом облике.'
 			' Слово прозвучало также в одноимённом фильме, снятом режиссёром Владимиром Бортко (1988)')
-	elif user_message in ['список'] and message.from_user.id == 124902528:
-		await bot.send_message(124902528, f'{len(USERS_ID_LIST)}')
-		await bot.send_message(124902528, USERS_ID_LIST)
+
+	elif user_message in ['список']:
+		id = message.from_user.id
+		users = {i:v for i, v in enumerate(list(USERS_ID_LIST))}
+		if users.get(str(id)) is None:
+			print("None")
+		else:
+			await bot.send_message(id, 'Error! Gone!')
+
 
 	else:
 		await message.answer('!АБЫРВАЛГ')
