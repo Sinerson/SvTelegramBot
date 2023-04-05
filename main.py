@@ -11,7 +11,7 @@ from aiogram.utils.markdown import link, hlink
 import config
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
-	APPLICATION_NAME, TOKEN, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST
+	APPLICATION_NAME, TOKEN, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST
 from func import f_contract_code, f_get_balance, f_get_payments, f_get_grant_on_phone, f_addUser, f_checkUserExists, \
 	f_updateUser, f_getLastPayment, f_send_PaymentNotify, f_isTechClaims, isC_Code, setPromesedPay, getClientCode
 # Импортируем адреса офисов и режим работы
@@ -26,6 +26,12 @@ dp = Dispatcher()
 
 # Объявим строку подключения к БД
 conn_str = ';'.join([DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, APPLICATION_NAME])
+
+#Получим список пользователей с расширенными правами
+manager_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
+
+#Получим список пользователей с админскими правами
+admin_ids = {v:i for i, v in enumerate(eval(ADMIN_ID_LIST))}
 
 
 # Объявили ветку для работы по команде 'start'
@@ -77,8 +83,7 @@ async def start(message):
 
 @dp.message(content_types=['contact'])  # Получили контактные данные
 async def contact(message):  # Проверка отправителя и отправленного объекта
-	if message.contact is not None and message.contact.user_id == message.chat.id \
-			or message.from_user.id == 124902528 or message.from_user.id == 1345730215:
+	if message.contact is not None and message.contact.user_id == message.chat.id or manager_ids.get(message.from_user.id) is not None:
 		user_exist_check = f_checkUserExists(message.from_user.id)
 		if str(user_exist_check[0]) == "1":
 			checkPhone = f_get_grant_on_phone(message.from_user.id)
@@ -248,8 +253,11 @@ async def text(message):
 		await bot.send_message(message.chat.id, 'Самая актуальная информация всегда доступна по ' +
 		                       '[ссылке](https://sv-tel.ru/about/contacts)' + '\n\n' + office_address,
 		                       parse_mode='Markdown')
-	elif message.from_user.id == 124902528 and user_message in ['параметры']:
-		await bot.send_message(message.chat.id,
+	elif user_message in ['параметры']:
+		if admin_ids.get(message.from_user.id) is None:
+			await bot.send_message(message.from_user.id, 'Restricted command! Gone!')
+		else:
+			await bot.send_message(message.chat.id,
 		                       'Token: ' + TOKEN + '\n' +
 		                       'Channel: ' + CHANNEL_ID + '\n' +
 		                       'Sber Token: ' + BANK_TOKEN + '\n' +
@@ -259,14 +267,17 @@ async def text(message):
 		                       PASSW + '\n')
 	elif message.text in ['айди', 'ай ди', 'chat id', 'чат']:
 		await bot.send_message(message.chat.id, message.chat.id)
-	elif message.from_user.id == 124902528 and user_message in ['оплаты']:
-		payment_list = f_getLastPayment()
-		for index in range(len(payment_list)):
-			value = payment_list[index]
-			isUser_id = value['user_id']
-			isPay_money = value['PAY_MONEY']
-			print(index, f'Пользователь {isUser_id} произвел оплату на сумму {isPay_money}')
-			await bot.send_message(isUser_id, f'Поступила оплата на сумму {round(isPay_money, 2)} руб.')
+	elif user_message in ['оплаты']:
+		if admin_ids.get(message.from_user.id) is None:
+			await bot.send_message(message.from_user.id, 'Restricted command! Gone!')
+		else:
+			payment_list = f_getLastPayment()
+			for index in range(len(payment_list)):
+				value = payment_list[index]
+				isUser_id = value['user_id']
+				isPay_money = value['PAY_MONEY']
+				print(index, f'Пользователь {isUser_id} произвел оплату на сумму {isPay_money}')
+				await bot.send_message(isUser_id, f'Поступила оплата на сумму {round(isPay_money, 2)} руб.')
 	elif user_message in ['главрыба!']:
 		await message.answer(
 			'«Абырва́лг» — второе (нередко цитируется как первое) слово, сказанное героем повести Михаила'
@@ -274,13 +285,13 @@ async def text(message):
 			' Слово прозвучало также в одноимённом фильме, снятом режиссёром Владимиром Бортко (1988)')
 
 	elif user_message in ['список']:
-		user_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
-		if user_ids.get(message.from_user.id) is None:
+		#user_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
+		if manager_ids.get(message.from_user.id) is None:
 			await bot.send_message(message.from_user.id, 'Restcricted command! Gone!')
 		else:
 			await bot.send_message(message.from_user.id, 'Пользователи с повышенными правами:')
-			for value in user_ids:
-				await bot.send_message(message.from_user.id, f'user: {value}')
+			for value in manager_ids:
+				await bot.send_message(message.from_user.id, f'user {key}: {value}')
 
 	else:
 		await message.answer('!АБЫРВАЛГ')

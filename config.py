@@ -23,6 +23,6 @@ APPLICATION_NAME = os.getenv('APPLICATION_NAME_DEV')
 TOKEN = os.getenv('TOKEN_DEV')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
 BANK_TOKEN = os.getenv('BANK_TOKEN')
-#USERS_ID_LIST = json.loads(os.environ['USERS_ID_LIST'])
-USERS_ID_LIST = os.getenv('USERS_ID_LIST_NEW')
+USERS_ID_LIST = os.getenv('USERS_ID_LIST')
+ADMIN_ID_LIST = os.getenv('ADMIN_USERS_LIST')
 
