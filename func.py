@@ -1,5 +1,11 @@
 # импортируем библиотеки аснихронности и работы с БД
-import timeit
+import logging
+import datetime
+from aiogram import Bot
+
+import config
+
+bot = Bot(config.TOKEN)
 
 import pyodbc, asyncio
 # импортируем запросы
@@ -132,19 +138,13 @@ async def f_send_PaymentNotify(wait_for):
 				value = payment_list[index]
 				isUser_id = value['user_id']
 				isPay_money = value['PAY_MONEY']
-				if isPay_money < 5:
-					#datetime_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-					print(index, f'Пользователь {isUser_id} произвел оплату на сумму {isPay_money}')
-					await bot.send_message(isUser_id, f'Поступила оплата на сумму {round(isPay_money, 2)} руб.')
-					await f_set_SendStatus(1, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), isPay_money,
-					                       str(isUser_id))
-				elif isPay_money >= 5:
-					print(index, f'Пользователь {isUser_id} произвел оплату на сумму {isPay_money}')
-					await bot.send_message(isUser_id, f'Поступила оплата на сумму {round(isPay_money, 2)} рублей.')
-					await f_set_SendStatus(1, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), isPay_money,
-					                       str(isUser_id))
-		except:
+				logging.debug(index, f'Пользователь {isUser_id} произвел оплату на сумму {isPay_money}')
+				await bot.send_message(isUser_id, f'Поступила оплата на сумму {round(isPay_money, 2)} руб.')
+				await f_set_SendStatus(1, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), isPay_money,
+				                       str(isUser_id))
+		except Exception as e:
 			print('Тут, это...такое дело. Exception поймали, что с ним делать?')
+			print(e)
 			return -1
 
 #

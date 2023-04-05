@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import ast
 
 import pyodbc
 from aiogram import Bot, Dispatcher, types

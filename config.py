@@ -1,7 +1,5 @@
 # Config parameters
 import os
-import json
-import ast
 
 from dotenv import load_dotenv
 
