@@ -11,6 +11,10 @@ import config
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
 	APPLICATION_NAME, TOKEN, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST
+
+from sql import checkPhone, checkUserExists, addUser, updateUser, delPhone, delUser, getContractCode, getBalance,\
+	getPayments, getLastPayment, setSendStatus, getTechClaims, getContractCodeByUserId, getLastTechClaims,\
+	getClientCodeByContractCode, getPromisedPayDate
 # Импортируем адреса офисов и режим работы
 from office import office_address
 
@@ -97,9 +101,9 @@ async def contact(message):  # Проверка отправителя и отп
 						if c_code is None:
 							await bot.send_message(message.chat.id,
 							                       'Номер телефона не найден в биллинговой системе ООО "Связист".'
-							                       ' Зарегистрируйте его в ' + link(title='личном кабинете',
-							                                                        url='https://bill.sv-tel.ru') +
-							                       'в разделе "Заявления - Получение уведомлений"')
+							                       ' Зарегистрируйте его в '
+							                       + '[личном кабинете](https://bill.sv-tel.ru)'
+							                       + 'в разделе "Заявления - Получение уведомлений"',parse_mode='Markdown')
 						else:
 							for row in c_code:
 								contract_code = row[0]
@@ -120,7 +124,7 @@ async def contact(message):  # Проверка отправителя и отп
 														        row[0]) + " запрашивает баланс в "
 													        + str(nowDateTime) + '\n')
 													f.close()
-											except:
+											except :
 												await bot.send_message(124902528, 'Не удалось записать данные в log')
 											for row in balance:
 												await bot.send_message(message.chat.id, 'Ваш текущий баланс: ' + str(
@@ -184,12 +188,11 @@ async def contact(message):  # Проверка отправителя и отп
 @dp.message(lambda message: message.text == 'Мои заявки в тех.поддержку')
 async def tech_claims(message: types.Message):
 	user_id = message.from_user.id
-	contract_code = isC_Code(str(user_id))
+	contract_code = f_isC_Code(str(user_id))
 	if contract_code[0] is not None:
 		claimslist = f_isTechClaims(contract_code)
 		if claimslist is not None:
 			await bot.send_message(user_id, 'Ниже выведены заявки в службу технической поддержки за последние 7 дней.',parse_mode='HTML')
-			#print(claimslist)
 			for index in range(len(claimslist)):
 				value = claimslist[index]
 				await bot.send_message(user_id, 'Номер договора '+ value['CONTRACT'] + '\n'
@@ -215,9 +218,9 @@ async def tech_claims(message: types.Message):
 @dp.message(lambda message: message.text == 'Получить "Доверительный платеж"')
 async def setPromisedPay(message: types.Message):
 	try:
-		contract_code = isC_Code(str(message.from_user.id))
-		client_code = getClientCode(str(contract_code[0]))
-		exec_result = setPromesedPay(client_code)
+		contract_code = f_isC_Code(str(message.from_user.id))
+		client_code = f_getClientCode(str(contract_code[0]))
+		exec_result = f_setPromesedPay(client_code)
 		if exec_result is not None:
 			RESULT_TEXT = exec_result[0][0]
 			if RESULT_TEXT == 'New record. Insert done!' or RESULT_TEXT == 'Existing record. Update Done!':
@@ -229,7 +232,9 @@ async def setPromisedPay(message: types.Message):
 			elif RESULT_TEXT == 'Err3: Advance Client. Promised pay not allowed!':
 				await bot.send_message(message.from_user.id,'Для абонентов с авансовой системой расчетов невозможно установить "доверительный платеж"')
 			elif RESULT_TEXT == 'Err4: Too often trying setup properties':
-				await bot.send_message(message.from_user.id,'Вы уже запрашивали доверительный платеж менее месяца назад. Попробуйте позднее.')
+				prop_date = f_getPromisedPayDate(client_code)
+				await bot.send_message(message.from_user.id,'С предыдущего запроса "доверительного платежа прошло менее месяца.\n'
+				                                            f' Дата предыдущего доверительного палатежа: {prop_date}')
 		else:
 			print('Получен пустой exec_result')
 			print(exec_result)
@@ -295,7 +300,7 @@ def f_get_grant_on_phone(user_id):
 			else:
 				return result
 		except:
-			bot.send_message(message.chat.id, 'Вы вызвали исключение! Как вам это удалось?!')
+			bot.send_message(message.from_user.id, 'Вы вызвали исключение! Как вам это удалось?!')
 def f_addUser(user_id, chat_id):
 	#while True:
 	try:
@@ -369,13 +374,6 @@ async def f_send_PaymentNotify(wait_for):
 			print(e)
 			return -1
 
-#
-#async def f_send_ClaimNotify(wait_for):
-#	while True:
-#		await asyncio.sleep(wait_for)
-#		try:
-#
-
 async def f_set_SendStatus(status, time, paid_money,user_id):
 	try:
 		conn = pyodbc.connect(conn_str)
@@ -408,7 +406,7 @@ def f_isTechClaims(contract_code):
 		logging.warning(e)
 		return -1
 
-def isC_Code(user_id):
+def f_isC_Code(user_id):
 	try:
 		conn = pyodbc.connect(conn_str)
 		cursor = conn.cursor()
@@ -423,7 +421,7 @@ def isC_Code(user_id):
 	except:
 		bot.send_message(message.from_user.id, 'Не могу получить CONTRACT_CODE по user_id')
 
-def getClientCode(contract_code):
+def f_getClientCode(contract_code):
 	try:
 		conn = pyodbc.connect(conn_str)
 		cursor = conn.cursor()
@@ -438,7 +436,7 @@ def getClientCode(contract_code):
 	except Exception as e:
 		print(f'func error: {e}')
 
-def setPromesedPay(client_code):
+def f_setPromesedPay(client_code):
 	try:
 		conn = pyodbc.connect(conn_str)
 		cursor = conn.cursor()
@@ -451,6 +449,19 @@ def setPromesedPay(client_code):
 		return exec_result
 	except Exception as e:
 		print(f'set promised pay error: {e}')
+
+def f_getPromisedPayDate(client_code):
+	try:
+		conn = pyodbc.connect(conn_str)
+		cursor = conn.cursor()
+		cursor.execute(getPromisedPayDate, client_code)
+		result = cursor.fetchone()
+		cursor.close()
+		conn.close()
+		return result[0]
+	except Exception as e:
+		print(e)
+
 
 # Function list OFF
 

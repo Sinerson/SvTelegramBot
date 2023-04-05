@@ -161,3 +161,10 @@ getClientCodeByContractCode =\
 					from INTEGRAL..CONTRACT_CLIENTS
 					where cast(CONTRACT_CODE as varchar(10)) = (?)
 """
+
+getPromisedPayDate =\
+"""
+					select cast(DATE_CHANGE as smalldatetime) as DATE_CHANGE
+					from INTEGRAL..CLIENT_PROPERTIES
+					where CLIENT_CODE = (?) and PROP_CODE = 823
+"""
