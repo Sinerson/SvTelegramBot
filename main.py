@@ -1,8 +1,7 @@
 import asyncio
 import datetime
-import json
 import logging
-import timeit
+import ast
 
 import pyodbc
 from aiogram import Bot, Dispatcher, types
@@ -204,9 +203,8 @@ async def tech_claims(message: types.Message):
 				                       )
 		elif claimslist is None:
 			await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
-			                                'Если вы уверены, что это не так, обратитесь в '\
-			                       + hlink(title='техническую поддержку по телефону 8(83145)77777', url='tel:+78314577777')
-			                       , parse_mode='HTML')
+			                                ' Если вы уверены, что это не так, обратитесь в техническую поддержку по'
+			                       +'[ телефону +78314577777](tel:+78314577777)', parse_mode='Markdown')
 	elif contract_code[0] is None:
 		await bot.send_message(user_id, 'Не можем определить ваш номер договора по номеру телефона.'
 		                                ' Отправьте нам свой телефон, после чего повторно запросите заявки.')
@@ -276,13 +274,13 @@ async def text(message):
 			' Слово прозвучало также в одноимённом фильме, снятом режиссёром Владимиром Бортко (1988)')
 
 	elif user_message in ['список']:
-		id = message.from_user.id
-		users = {i:v for i, v in enumerate(list(USERS_ID_LIST))}
-		if users.get(str(id)) is None:
-			print("None")
+		user_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
+		if user_ids.get(message.from_user.id) is None:
+			await bot.send_message(message.from_user.id, 'Restcricted command! Gone!')
 		else:
-			await bot.send_message(id, 'Error! Gone!')
-
+			await bot.send_message(message.from_user.id, 'Пользователи с повышенными правами:')
+			for value in user_ids:
+				await bot.send_message(message.from_user.id, f'user: {value}')
 
 	else:
 		await message.answer('!АБЫРВАЛГ')
