@@ -4,13 +4,12 @@ import logging
 
 import pyodbc
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, message
 from aiogram.utils.markdown import link, hlink
 
-import config
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
-	APPLICATION_NAME, TOKEN, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST
+	APPLICATION_NAME, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST, TOKEN
 
 from sql import checkPhone, checkUserExists, addUser, updateUser, delPhone, delUser, getContractCode, getBalance,\
 	getPayments, getLastPayment, setSendStatus, getTechClaims, getContractCodeByUserId, getLastTechClaims,\
@@ -22,7 +21,7 @@ from office import office_address
 logging.basicConfig(level=logging.DEBUG)#, filename="DEBUG_log.log", filemode="a")
 
 # Отдадим боту его токен
-bot = Bot(config.TOKEN)  # Для aiogram
+bot = Bot(TOKEN)  # Для aiogram
 dp = Dispatcher()
 
 # Объявим строку подключения к БД
@@ -233,8 +232,8 @@ async def setPromisedPay(message: types.Message):
 				await bot.send_message(message.from_user.id,'Для абонентов с авансовой системой расчетов невозможно установить "доверительный платеж"')
 			elif RESULT_TEXT == 'Err4: Too often trying setup properties':
 				prop_date = f_getPromisedPayDate(client_code)
-				await bot.send_message(message.from_user.id,'С предыдущего запроса "доверительного платежа прошло менее месяца.\n'
-				                                            f' Дата предыдущего доверительного палатежа: {prop_date}')
+				await bot.send_message(message.from_user.id,'С предыдущего запроса "доверительного платежа" прошло менее месяца.\n'
+				                                            f' Дата предыдущего "доверительного платежа": {prop_date}')
 		else:
 			print('Получен пустой exec_result')
 			print(exec_result)
@@ -504,15 +503,22 @@ async def text(message):
 			' Булгакова «Собачье сердце» Шариковым после его «оживления» в человеческом облике.'
 			' Слово прозвучало также в одноимённом фильме, снятом режиссёром Владимиром Бортко (1988)')
 
-	elif user_message in ['список']:
-		#user_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
+	elif user_message in ['менеджер']:
 		if manager_ids.get(message.from_user.id) is None:
 			await bot.send_message(message.from_user.id, 'Restcricted command! Gone!')
 		else:
-			await bot.send_message(message.from_user.id, 'Пользователи с повышенными правами:')
+			await bot.send_message(message.from_user.id, 'Менеджеры(права на большую часть команд):')
 			for value in manager_ids:
-				await bot.send_message(message.from_user.id, f'user {key}: {value}')
-
+				await bot.send_message(message.from_user.id, f'user: {value}')
+	elif user_message in ['админ']:
+		if admin_ids.get(message.from_user.id) is None:
+			await bot.send_message(message.from_user.id, 'Restcricted command! Gone!')
+		else:
+			await bot.send_message(message.from_user.id, 'Админы(права на все команды):')
+			for value in admin_ids:
+				await bot.send_message(message.from_user.id, f'user: {value}')
+	elif user_message in ['my message']:
+		await bot.send_message(message.from_user.id, f'{message}')
 	else:
 		await message.answer('!АБЫРВАЛГ')
 
@@ -543,12 +549,17 @@ async def document(message):
 
 
 async def telegram_bot_app():
+	print('Устанавливаю подключение к БД Sybase')
 	conn = pyodbc.connect(conn_str)
 	loop = asyncio.get_event_loop()
 	loop.create_task(f_send_PaymentNotify(61))
 	# loop.create_task(f_send_ClaimNotify(61))
+	print('Подключение установлено.')
+	print('Запускаю основное тело программы')
 	await dp.start_polling(bot)
+	print('Основное тело запущено, начали слушать event-ы Telegram')
 
 
 if __name__ == "__main__":
+	print('Запуск программы')
 	asyncio.run(telegram_bot_app())

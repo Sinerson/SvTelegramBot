@@ -23,4 +23,3 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 BANK_TOKEN = os.getenv('BANK_TOKEN')
 USERS_ID_LIST = os.getenv('USERS_ID_LIST')
 ADMIN_ID_LIST = os.getenv('ADMIN_USERS_LIST')
-
