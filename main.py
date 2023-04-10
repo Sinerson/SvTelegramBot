@@ -18,7 +18,8 @@ from sql import checkPhone, checkUserExists, addUser, updateUser, delPhone, delU
 from office import office_address
 
 # Включим логирование
-logging.basicConfig(level=logging.DEBUG)#, filename="DEBUG_log.log", filemode="a")
+
+logging.basicConfig(level=logging.DEBUG)#, filename="DEBUG_log.log", filemode="a", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # Отдадим боту его токен
 bot = Bot(TOKEN)  # Для aiogram
@@ -62,7 +63,7 @@ async def start(message):
 					                                             ' отправьте нам его нажав кнопку внизу.'
 					                       , reply_markup=keyboard)
 		elif check_grant == "Null" or check_grant is None:
-			button_phone = [[type.KeyboardButton(text="Отправить контакт и узнать баланс", request_contact=True)]]
+			button_phone = [[types.KeyboardButton(text="Отправить контакт и узнать баланс", request_contact=True)]]
 			keyboard = ReplyKeyboardMarkup(keyboard=button_phone, resize_keyboard=True)
 			await bot.send_message(message.chat.id,
 			                       'Этот бот может отобразить баланс вашего лицевого счета. Для этого нажмите кнопку ниже.'
@@ -102,7 +103,7 @@ async def contact(message):  # Проверка отправителя и отп
 							                       'Номер телефона не найден в биллинговой системе ООО "Связист".'
 							                       ' Зарегистрируйте его в '
 							                       + '[личном кабинете](https://bill.sv-tel.ru)'
-							                       + 'в разделе "Заявления - Получение уведомлений"',parse_mode='Markdown')
+							                       + ' в разделе "Заявления - Получение уведомлений"',parse_mode='Markdown')
 						else:
 							for row in c_code:
 								contract_code = row[0]
@@ -156,16 +157,24 @@ async def contact(message):  # Проверка отправителя и отп
 								elif contract_code is None:
 									await bot.send_message(message.chat.id,
 									                       'Номер телефона не найден. Зарегистрируйте его в ' + hlink(
-										                       'личном кабинете', 'https://bill.sv-tel.ru') +
+										                       'личном кабинете ', 'https://bill.sv-tel.ru') +
 									                       'в разделе "Заявления - Получение уведомлений"', parse_mode='HTML')
 								else:
 									await bot.send_message(message.chat.id, 'Что-то пошло совсем не так...')
 					elif checkPhone_result == "0" or checkPhone_result is None:
 						phonenumber = message.contact.phone_number
+						f_updateUser(phonenumber, None, message.from_user.id, message.chat.id)
 						contract_code = f_contract_code(phonenumber)
-						f_updateUser(phonenumber, contract_code[0][0], message.from_user.id, message.chat.id)
-						await bot.send_message(message.from_user.id,
-						                       "Номер сохранен, разрешение на его использование получено. Нажмите /start для отображения меню.")
+						if contract_code is not None:
+							f_updateUser(phonenumber, contract_code[0][0], message.from_user.id, message.chat.id)
+							await bot.send_message(message.from_user.id,
+						                        "Номер сохранен, разрешение на его использование получено.")
+							await start(message)
+						else:
+							await bot.send_message(message.chat.id,
+							                       'Номер телефона не найден в биллинговой системе ООО "Связист".'
+							                       ' Зарегистрируйте его в ' + '[личном кабинете](https://bill.sv-tel.ru)'
+							                       + 'в разделе "Заявления - Получение уведомлений"', parse_mode='Markdown')
 			elif checkPhone == 'Null' or checkPhone is None:
 				await bot.send_message(message.from_user.id, 'Нажмите /start')
 		else:
