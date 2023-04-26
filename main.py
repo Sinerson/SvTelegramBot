@@ -1,10 +1,12 @@
 import asyncio
+
 import datetime
 import logging
 
 import pyodbc
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, message
+from aiogram.types.message import *
 from aiogram.utils.markdown import link, hlink
 
 # Импортируем настройки
@@ -28,11 +30,13 @@ dp = Dispatcher()
 # Объявим строку подключения к БД
 conn_str = ';'.join([DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, APPLICATION_NAME])
 
-#Получим список пользователей с расширенными правами
+#Получим список пользователей с расширенными правами(менеджеры)
 manager_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
 
 #Получим список пользователей с админскими правами
 admin_ids = {v:i for i, v in enumerate(eval(ADMIN_ID_LIST))}
+
+#prices
 
 
 # Объявили ветку для работы по команде 'start'
@@ -254,7 +258,7 @@ async def setPromisedPay(message: types.Message):
 # Func list ON
 def f_contract_code(phonenumber):
 	while True:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		try:
 			cursor = conn.cursor()
 			cursor.execute(getContractCode, phonenumber)
@@ -266,10 +270,10 @@ def f_contract_code(phonenumber):
 			else:
 				return cc_result
 		except:
-			conn = pyodbc.connect(conn_str)
+			conn = pyodbc.connect(conn_str, autocommit=True)
 def f_get_balance(c_code):
 	while True:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		try:
 			cursor = conn.cursor()
 			cursor.execute(getBalance, c_code)
@@ -278,10 +282,10 @@ def f_get_balance(c_code):
 			conn.close()
 			return b_result
 		except:
-			conn = pyodbc.connect(conn_str)
+			conn = pyodbc.connect(conn_str, autocommit=True)
 def f_get_payments(c_code):
 	while True:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		try:
 			cursor = conn.cursor()
 			cursor.execute(getPayments, c_code)
@@ -292,12 +296,12 @@ def f_get_payments(c_code):
 			else:
 				return pay_result
 		except:
-			conn = pyodbc.connect(conn_str)
+			conn = pyodbc.connect(conn_str, autocommit=True)
 			conn.close()
 def f_get_grant_on_phone(user_id):
 	while True:
 		try:
-			conn = pyodbc.connect(conn_str)
+			conn = pyodbc.connect(conn_str, autocommit=True)
 			cursor = conn.cursor()
 			cursor.execute(checkPhone, str(user_id))
 			result = cursor.fetchall()
@@ -312,7 +316,7 @@ def f_get_grant_on_phone(user_id):
 def f_addUser(user_id, chat_id):
 	#while True:
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(addUser, str(user_id), str(chat_id))
 		cursor.commit()
@@ -324,7 +328,7 @@ def f_addUser(user_id, chat_id):
 		cursor.rollback()
 def f_checkUserExists(user_id):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(checkUserExists, str(user_id))
 		result = cursor.fetchone()
@@ -338,7 +342,7 @@ def f_checkUserExists(user_id):
 		bot.send_message(message.from_user.id, 'Не могу проверить пользователя')
 def f_updateUser(phonenumber, contract_code, user_id, chat_id):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(updateUser, str(phonenumber), contract_code, str(user_id), str(chat_id))
 		cursor.commit()
@@ -350,7 +354,7 @@ def f_updateUser(phonenumber, contract_code, user_id, chat_id):
 
 def f_getLastPayment():
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(getLastPayment)
 		columns = [column[0] for column in cursor.description]
@@ -384,7 +388,7 @@ async def f_send_PaymentNotify(wait_for):
 
 async def f_set_SendStatus(status, time, paid_money,user_id):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(setSendStatus, status, time, paid_money,str(user_id))
 		cursor.commit()
@@ -397,7 +401,7 @@ async def f_set_SendStatus(status, time, paid_money,user_id):
 
 def f_isTechClaims(contract_code):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(getTechClaims, contract_code)
 		columns = [column[0] for column in cursor.description]
@@ -416,7 +420,7 @@ def f_isTechClaims(contract_code):
 
 def f_isC_Code(user_id):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(getContractCodeByUserId, user_id)
 		result = cursor.fetchone()
@@ -431,7 +435,7 @@ def f_isC_Code(user_id):
 
 def f_getClientCode(contract_code):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(getClientCodeByContractCode, contract_code)
 		result = cursor.fetchone()
@@ -446,12 +450,10 @@ def f_getClientCode(contract_code):
 
 def f_setPromesedPay(client_code):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
-		cursor.execute('SET CHAINED OFF')
 		cursor.execute(f'exec MEDIATE..spMangoSetPromisedPay {client_code[0]}')
 		exec_result = cursor.fetchall()
-		cursor.execute('SET CHAINED ON')
 		cursor.close()
 		conn.close()
 		return exec_result
@@ -460,7 +462,7 @@ def f_setPromesedPay(client_code):
 
 def f_getPromisedPayDate(client_code):
 	try:
-		conn = pyodbc.connect(conn_str)
+		conn = pyodbc.connect(conn_str, autocommit=True)
 		cursor = conn.cursor()
 		cursor.execute(getPromisedPayDate, client_code)
 		result = cursor.fetchone()
@@ -514,20 +516,25 @@ async def text(message):
 
 	elif user_message in ['менеджер']:
 		if manager_ids.get(message.from_user.id) is None:
-			await bot.send_message(message.from_user.id, 'Restcricted command! Gone!')
+			await bot.send_message(message.from_user.id, 'Restricted command! Gone!')
 		else:
 			await bot.send_message(message.from_user.id, 'Менеджеры(права на большую часть команд):')
 			for value in manager_ids:
 				await bot.send_message(message.from_user.id, f'user: {value}')
 	elif user_message in ['админ']:
 		if admin_ids.get(message.from_user.id) is None:
-			await bot.send_message(message.from_user.id, 'Restcricted command! Gone!')
+			await bot.send_message(message.from_user.id, 'Restricted command! Gone!')
 		else:
 			await bot.send_message(message.from_user.id, 'Админы(права на все команды):')
 			for value in admin_ids:
 				await bot.send_message(message.from_user.id, f'user: {value}')
 	elif user_message in ['my message']:
 		await bot.send_message(message.from_user.id, f'{message}')
+	elif user_message in ['stop']:
+		if admin_ids.get(message.from_user.id) is None:
+			await bot.send_message(message.from_user.id, 'Restricted command! Gone!')
+		else:
+			bot.close()
 	else:
 		await message.answer('!АБЫРВАЛГ')
 
@@ -556,17 +563,18 @@ async def location(message):
 async def document(message):
 	await message.reply('Документ')
 
-
 async def telegram_bot_app():
-	print('Устанавливаю подключение к БД Sybase')
-	conn = pyodbc.connect(conn_str)
-	loop = asyncio.get_event_loop()
-	loop.create_task(f_send_PaymentNotify(61))
-	# loop.create_task(f_send_ClaimNotify(61))
-	print('Подключение установлено.')
-	print('Запускаю основное тело программы')
-	await dp.start_polling(bot)
-	print('Основное тело запущено, начали слушать event-ы Telegram')
+	try:
+		print('Устанавливаю подключение к БД Sybase')
+		pyodbc.connect(conn_str, autocommit=True)
+		loop = asyncio.get_event_loop()
+		loop.create_task(f_send_PaymentNotify(61))
+		# loop.create_task(f_send_ClaimNotify(61))
+		print('Подключение установлено.')
+		print('Запускаю основное тело программы')
+		await dp.start_polling(bot, skip_updates=False)
+	finally:
+		await bot.close()
 
 
 if __name__ == "__main__":
