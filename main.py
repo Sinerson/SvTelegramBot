@@ -271,6 +271,8 @@ def f_contract_code(phonenumber):
 				return cc_result
 		except:
 			conn = pyodbc.connect(conn_str, autocommit=True)
+
+
 def f_get_balance(c_code):
 	while True:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -283,6 +285,8 @@ def f_get_balance(c_code):
 			return b_result
 		except:
 			conn = pyodbc.connect(conn_str, autocommit=True)
+
+
 def f_get_payments(c_code):
 	while True:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -298,6 +302,8 @@ def f_get_payments(c_code):
 		except:
 			conn = pyodbc.connect(conn_str, autocommit=True)
 			conn.close()
+
+
 def f_get_grant_on_phone(user_id):
 	while True:
 		try:
@@ -313,6 +319,8 @@ def f_get_grant_on_phone(user_id):
 				return result
 		except:
 			bot.send_message(message.from_user.id, 'Вы вызвали исключение! Как вам это удалось?!')
+
+
 def f_addUser(user_id, chat_id):
 	#while True:
 	try:
@@ -326,6 +334,8 @@ def f_addUser(user_id, chat_id):
 	except:
 		bot.send_message(124902528, 'Не удалось записать в базу')
 		cursor.rollback()
+
+
 def f_checkUserExists(user_id):
 	try:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -340,6 +350,8 @@ def f_checkUserExists(user_id):
 			return result
 	except:
 		bot.send_message(message.from_user.id, 'Не могу проверить пользователя')
+
+
 def f_updateUser(phonenumber, contract_code, user_id, chat_id):
 	try:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -351,6 +363,7 @@ def f_updateUser(phonenumber, contract_code, user_id, chat_id):
 	except:
 		cursor.rollback()
 		bot.send_message(124902528, 'Не могу обновить данные по пользователю')
+
 
 def f_getLastPayment():
 	try:
@@ -367,6 +380,7 @@ def f_getLastPayment():
 	except pyodbc.Error as e:
 		logging.warning(e)
 		return -1
+
 
 async def f_send_PaymentNotify(wait_for):
 	while True:
@@ -386,6 +400,7 @@ async def f_send_PaymentNotify(wait_for):
 			print(e)
 			return -1
 
+
 async def f_set_SendStatus(status, time, paid_money,user_id):
 	try:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -398,6 +413,7 @@ async def f_set_SendStatus(status, time, paid_money,user_id):
 		cursor.rollback()
 		logging.warning(e)
 		await bot.send_message(124902528,'Не удалось записать данные по отправке уведомления')
+
 
 def f_isTechClaims(contract_code):
 	try:
@@ -418,6 +434,7 @@ def f_isTechClaims(contract_code):
 		logging.warning(e)
 		return -1
 
+
 def f_isC_Code(user_id):
 	try:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -432,6 +449,7 @@ def f_isC_Code(user_id):
 			return result
 	except:
 		bot.send_message(message.from_user.id, 'Не могу получить CONTRACT_CODE по user_id')
+
 
 def f_getClientCode(contract_code):
 	try:
@@ -448,6 +466,7 @@ def f_getClientCode(contract_code):
 	except Exception as e:
 		print(f'func error: {e}')
 
+
 def f_setPromesedPay(client_code):
 	try:
 		conn = pyodbc.connect(conn_str, autocommit=True)
@@ -459,6 +478,7 @@ def f_setPromesedPay(client_code):
 		return exec_result
 	except Exception as e:
 		print(f'set promised pay error: {e}')
+
 
 def f_getPromisedPayDate(client_code):
 	try:
@@ -562,6 +582,7 @@ async def location(message):
 @dp.message(content_types=['document'])
 async def document(message):
 	await message.reply('Документ')
+
 
 async def telegram_bot_app():
 	try:
