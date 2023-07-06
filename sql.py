@@ -151,7 +151,7 @@ getLastTechClaims = \
 					left join SV..TIA_INFO_PROBLEMS IP on A.APPL_INFO_PROBLEMS_ID = IP.INFO_PROBLEMS_ID
 					left join SV..TIA_ERRORS E on A.APPL_ERRORS_ID = E.ERRORS_ID
 					join INTEGRAL..CONTRACTS CS on B.CONTRACT_ID = cast(CS.CONTRACT as int)
-					join SV..TBP_TELEGRAM_BOT TTB on CS.CONTRACT_CODE = TTB.CONTRACT_CODE
+					join SV..TBP_TELEGRAM_BOT TTB on CS.CONTRACT_CODE = TTB.contract_code
 					where   A.APPL_DATE_CREATE >= dateadd(ss, -120, getdate()) and
 					        A.APPL_DATE_CLOSE is null
 """

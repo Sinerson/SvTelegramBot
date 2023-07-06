@@ -207,16 +207,16 @@ async def tech_claims(message: types.Message):
 			await bot.send_message(user_id, 'Ниже выведены заявки в службу технической поддержки за последние 7 дней.',parse_mode='HTML')
 			for index in range(len(claimslist)):
 				value = claimslist[index]
-				await bot.send_message(user_id, 'Номер договора '+ value['CONTRACT'] + '\n'
-				                                'Заявка № ' + value['CLAIM_NUM'] + '\n'
-				                                'от ' + value['APPL_DATE_CREATE'] + '\n'
-				                                'Проблема: ' + value['ERROR_NAME'] + '\n'
-				                                'Дополнительное инфо: ' + value['INFO_PROBLEMS_NAME']+ '\n'
-				                                'Назначена дата выполнения: ' + value['APPL_DATE_RUN'] + '\n\n'
-				                                'Контактные данные по заявке: ' + '\n'
-				                                'ФИО: ' + value['CLIENT_NAME'] + '\n'
-				                                'Адрес: ' + value['ADDRESS_NAME'] + '\n'
-				                                'Контактный телефон: ' + value['PHONE'] + '\n'
+				await bot.send_message(user_id, f'Номер договора  {value["CONTRACT"]} \n'
+												f'Заявка № {value["CLAIM_NUM"]}\n'
+												f'от {value["APPL_DATE_CREATE"]}\n'
+				                                f'Проблема:  {value["ERROR_NAME"]}\n'
+				                                f'Дополнительное инфо: {value["INFO_PROBLEMS_NAME"]}\n'
+				                                f'Назначена дата выполнения: {value["APPL_DATE_RUN"]}\n\n'
+				                                f'Контактные данные по заявке:\n'
+				                                f'ФИО: {value["CLIENT_NAME"]}\n'
+				                                f'Адрес: {value["ADDRESS_NAME"]}\n'
+				                                f'Контактный телефон: {value["PHONE"]}\n'
 				                       )
 		elif claimslist is None:
 			await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
