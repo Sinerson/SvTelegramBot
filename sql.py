@@ -1,4 +1,4 @@
-#SQL queries
+# SQL queries
 checkPhone = """select grant_phone
                from SV..TBP_TELEGRAM_BOT
 			   where chat_id = (?)
@@ -13,23 +13,23 @@ checkUserExists = """select E = case
 					else 0
 					end"""
 
-addUser =        """insert into SV..TBP_TELEGRAM_BOT (user_id, chat_id, date)
+addUser = """insert into SV..TBP_TELEGRAM_BOT (user_id, chat_id, date)
 					values ((?),(?),getdate())"""
 
-updateUser =     """update SV..TBP_TELEGRAM_BOT
+updateUser = """update SV..TBP_TELEGRAM_BOT
 					set phonenumber = (?),
                     grant_phone = '1',
                     contract_code = cast((?) as int)
 					where user_id = (?) and chat_id = (?)"""
 
-delPhone =       """update SV..TBP_TELEGRAM_BOT
+delPhone = """update SV..TBP_TELEGRAM_BOT
 					set grant_phone = '0'
 					where phonenumber = (?)"""
 
-delUser =         """delete from SV.dbo.TBP_TELEGRAM_BOT where chat_id = (?)"""
+delUser = """delete from SV.dbo.TBP_TELEGRAM_BOT where chat_id = (?)"""
 
-getContractCode =\
-"""
+getContractCode = \
+	"""
 					select cast(CL.CONTRACT_CODE as numeric(10,0)), cast(CS.CONTRACT as numeric(10,0))
 					from INTEGRAL..OTHER_DEVICES OD
 					join INTEGRAL..CONTRACT_CLIENTS CL on CL.CLIENT_CODE = OD.CLIENT_CODE
@@ -37,8 +37,8 @@ getContractCode =\
 					where DEVICE like '%'+right(cast((?) as varchar), 10)+'%'
 """
 
-getBalance =\
-"""
+getBalance = \
+	"""
 					declare     @CurDate datetime,
                                 @CurMonth datetime
                     select      @CurDate = getdate()
@@ -53,8 +53,8 @@ getBalance =\
                     group by    CONTRACT_CODE
 """
 
-getPayments =\
-"""
+getPayments = \
+	"""
 					declare     @CurDate datetime,
 					            @CurMonth datetime
 					select      @CurDate = getdate()
@@ -78,23 +78,23 @@ getPayments =\
 					group by    MONTH
 					order by    datepart(mm,MONTH)
 """
-getLastPayment =\
-"""
+getLastPayment = \
+	"""
 					select user_id, sum(PAY_MONEY) as PAY_MONEY
 					from INT_PAYM..CONTRACT_PAYS CP
 					join SV..TBP_TELEGRAM_BOT B on CP.CONTRACT_CODE = B.contract_code
 					where PAY_DATE >= dateadd(ss,-120, getdate()) and USED = 1
 					group by user_id, USED
 """
-setSendStatus =\
-"""
+setSendStatus = \
+	"""
 					update SV..TBP_TELEGRAM_BOT
 					set send_status = (?), send_time = (?), paid_money = (?)
 					from SV..TBP_TELEGRAM_BOT
 					where user_id = (?)
 """
-getTechClaims =\
-"""
+getTechClaims = \
+	"""
 					declare @ContractCode int
 					select @ContractCode = (?)
 					select  A.APPL_ID as CLAIM_NUM,
@@ -117,20 +117,20 @@ getTechClaims =\
 					        left join SV..TIA_INFO_PROBLEMS IP on A.APPL_INFO_PROBLEMS_ID = IP.INFO_PROBLEMS_ID
 					        left join SV..TIA_ERRORS E on A.APPL_ERRORS_ID = E.ERRORS_ID
 					        join INTEGRAL..CONTRACTS CS on B.CONTRACT_ID = cast(CS.CONTRACT as int)
-					where   A.APPL_DATE_CREATE >= dateadd(dd, -30, getdate()) and
+					where   A.APPL_DATE_CREATE >= dateadd(dd, -7, getdate()) and
 					        CS.CONTRACT_CODE = @ContractCode and
 					        A.APPL_DATE_CLOSE is null
 """
 
-getContractCodeByUserId =\
-"""
+getContractCodeByUserId = \
+	"""
 					select contract_code
 					from SV..TBP_TELEGRAM_BOT
 					where user_id = (?)
 """
 
-getLastTechClaims =\
-"""
+getLastTechClaims = \
+	"""
 					select  A.APPL_ID as CLAIM_NUM,
 					rtrim(S.STATUS_NAME) as STATUS_NAME,
 					cast(A.APPL_DATE_CREATE as smalldatetime) as APPL_DATE_CREATE, -- Дата создания
@@ -151,13 +151,20 @@ getLastTechClaims =\
 					left join SV..TIA_INFO_PROBLEMS IP on A.APPL_INFO_PROBLEMS_ID = IP.INFO_PROBLEMS_ID
 					left join SV..TIA_ERRORS E on A.APPL_ERRORS_ID = E.ERRORS_ID
 					join INTEGRAL..CONTRACTS CS on B.CONTRACT_ID = cast(CS.CONTRACT as int)
-					join SV..TBP_TELEGRAM_BOT TTB on CS.CONTRACT_CODE = TTB.CONTRACT_CODE
+					join SV..TBP_TELEGRAM_BOT TTB on CS.CONTRACT_CODE = TTB.contract_code
 					where   A.APPL_DATE_CREATE >= dateadd(ss, -120, getdate()) and
 					        A.APPL_DATE_CLOSE is null
 """
-getClientCodeByContractCode =\
-"""
+getClientCodeByContractCode = \
+	"""
 					select CLIENT_CODE
 					from INTEGRAL..CONTRACT_CLIENTS
 					where cast(CONTRACT_CODE as varchar(10)) = (?)
+"""
+
+getPromisedPayDate = \
+	"""
+					select cast(DATE_CHANGE as smalldatetime) as DATE_CHANGE
+					from INTEGRAL..CLIENT_PROPERTIES
+					where CLIENT_CODE = (?) and PROP_CODE = 823
 """

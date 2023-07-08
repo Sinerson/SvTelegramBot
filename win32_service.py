@@ -1,10 +1,14 @@
 import asyncio
 import os
+import dotenv
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def start():
-	from main import bot_app
-	asyncio.run(bot_app())
+	from main import telegram_bot_app
+	asyncio.run(telegram_bot_app())
 
 WINSERVICE = False
 
