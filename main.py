@@ -8,9 +8,8 @@ from requests import HTTPError
 import aiogram
 import pyodbc
 from aiogram import Bot, Dispatcher, types, Router
-from aiogram.types import ReplyKeyboardMarkup, Message, Contact, ContentType, Location
-from aiogram.utils.markdown import link, hlink
-from aiogram.methods import stop_poll
+from aiogram.types import ReplyKeyboardMarkup, Message, Contact, ContentType, Location, message
+from aiogram.utils.markdown import hlink
 
 
 # Импортируем настройки
@@ -24,7 +23,7 @@ from sql import checkPhone, checkUserExists, addUser, updateUser, delPhone, delU
 from office import office_address
 
 # Включим логирование
-logging.basicConfig(level=logging.DEBUG, filename="DEBUG_log.log", filemode="a", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+#logging.basicConfig(level=logging.DEBUG, filename="DEBUG_log.log", filemode="a", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # Отдадим боту его токен
 bot = Bot(TOKEN)  # Для aiogram
@@ -61,6 +60,7 @@ async def start(message):
                 if grant_result == "1":
                     button_phone = [
                         [types.KeyboardButton(text='Мой баланс', request_contact=True)],
+                        [types.KeyboardButton(text='Мои услуги')],
                         [types.KeyboardButton(text='Мои заявки в тех.поддержку')],
                         [types.KeyboardButton(text='Получить "Доверительный платеж"')]
                     ]
@@ -256,10 +256,43 @@ async def setPromisedPay(message: types.Message):
                                                             f' Дата предыдущего "доверительного платежа": {prop_date}')
         else:
             print('Получен пустой exec_result')
-            print(exec_result)
     except Exception as e:
         print(f'main error: {e}')
         await bot.send_message(message.from_user.id, 'Не удалось получить доверительный платеж')
+
+
+@dp.message(lambda message: message.text == 'Мои услуги')
+async def ClientServices(message: types.Message):
+    try:
+        serv_list = getClientServicesList(message.from_user.id)
+        if not serv_list:
+            print("Данные не вернулись")
+        else:
+            await bot.send_message(message.from_user.id, 'Перечень услуг: \n')
+            for elem in serv_list:
+                await bot.send_message(message.from_user.id, f'{elem["TARIFF_NAME"]}, стоимостью {elem["TARIFF_COST"]} руб.\n')
+    except Exception as e:
+        print(e)
+
+def getClientServicesList(userid):
+    contract_code = f_isC_Code(str(userid))
+    result = f_getClientCode(str(contract_code[0]))
+    cl_code = result[0][0]
+    cl_type_code = result[0][1]
+    conn = pyodbc.connect(conn_str)
+    try:
+        serv_list = []
+        cursor = conn.cursor()
+        cursor.execute('SET CHAINED OFF')
+        cursor.execute(f'exec MEDIATE..spWeb_GetClientServices {contract_code[0]}, {cl_code}, {cl_type_code}')
+        for row in cursor.fetchall():
+            columns = [column[0] for column in cursor.description]
+            serv_list.append(dict(zip(columns, row)))
+        cursor.execute('SET CHAINED ON')
+        return serv_list
+    except Exception as e:
+        print(e)
+
 
 
 # Func list ON
@@ -429,7 +462,7 @@ def f_isC_Code(user_id):
     try:
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute(getContractCodeByUserId, user_id)
+        cursor.execute(getContractCodeByUserId, str(user_id))
         result = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -437,15 +470,16 @@ def f_isC_Code(user_id):
             return None
         else:
             return result
-    except:
-        bot.send_message(message.from_user.id, 'Не могу получить CONTRACT_CODE по user_id')
+    except Exception as e:
+        print(e)
+        bot.send_message(Message.from_user.id, 'Не могу получить CONTRACT_CODE по user_id')
 
 def f_getClientCode(contract_code):
     try:
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute(getClientCodeByContractCode, contract_code)
-        result = cursor.fetchone()
+        result = cursor.fetchall()
         cursor.close()
         conn.close()
         if not result or len(result) == 0:
@@ -517,7 +551,8 @@ def get_forecast_weather(site_url, query_params):
                   f'Давление: {round(float((main.get("pressure")) / 1.333), 2)} мм.рт.ст.\n'
                   f'Влажность: {main.get("humidity")}%\n'
                   f'Видимость: {visibility} метров\n'
-                  f'Ветер: скорость {wind.get("speed")} м/с, направление {wind_direction(wind.get("deg"))}\u00b0, порывы до {wind.get("gust")} м/с\n'
+                  f'Ветер: скорость {wind.get("speed")} м/с, направление {wind_direction(wind.get("deg"))},'
+                    f' порывы до {wind.get("gust") if wind.get("gust") is not None else "без порывов"} м/с\n'
                   )
         else:
             print(f'Ошибка получения данных, код: {response.status_code}')
@@ -562,7 +597,7 @@ def wind_direction(deg):
 
 # Function list OFF
 
-# Добавим чуточку мозгов(вот бы себе так)
+
 @dp.message(content_types=['text'])
 async def text(message):
     user_message = message.text.lower()
@@ -619,6 +654,10 @@ async def text(message):
         await bot.send_message(message.from_user.id, f'{message}')
 
     else:
+        with open(r'log\user_massages.txt', 'a+') as f:
+            f.write(f'Пользователь Chat ID: {str(message.chat.id)} User_ID: {str(message.from_user.id)} написал:\n'
+                    f'{message.text}\n')
+            f.close()
         await message.answer('!АБЫРВАЛГ')
 
 
