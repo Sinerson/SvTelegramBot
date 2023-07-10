@@ -270,13 +270,16 @@ async def ClientServices(message: types.Message):
         else:
             await bot.send_message(message.from_user.id, 'Перечень услуг: \n')
             for elem in serv_list:
-                await bot.send_message(message.from_user.id, f'{elem["TARIFF_NAME"]}, стоимостью {elem["TARIFF_COST"]} руб.\n')
+                await bot.send_message(message.from_user.id, f'{elem["TARIFF_NAME"]}, стоимостью {round(float(elem["TARIFF_COST"]),2)} руб.\n')
     except Exception as e:
         print(e)
 
 def getClientServicesList(userid):
+    print(userid)
     contract_code = f_isC_Code(str(userid))
+    print(contract_code)
     result = f_getClientCode(str(contract_code[0]))
+    print(result)
     cl_code = result[0][0]
     cl_type_code = result[0][1]
     conn = pyodbc.connect(conn_str)
@@ -289,6 +292,8 @@ def getClientServicesList(userid):
             columns = [column[0] for column in cursor.description]
             serv_list.append(dict(zip(columns, row)))
         cursor.execute('SET CHAINED ON')
+        cursor.close()
+        conn.close()
         return serv_list
     except Exception as e:
         print(e)
@@ -709,4 +714,6 @@ async def telegram_bot_app():
 
 if __name__ == "__main__":
     print('Программа начинает работу...')
-    asyncio.run(telegram_bot_app())
+    while True:
+        asyncio.run(telegram_bot_app())
+        
