@@ -157,8 +157,9 @@ getLastTechClaims = \
 """
 getClientCodeByContractCode = \
 	"""
-					select CLIENT_CODE
-					from INTEGRAL..CONTRACT_CLIENTS
+					select CL.CLIENT_CODE, CL.TYPE_CODE
+					from INTEGRAL..CONTRACT_CLIENTS CCL
+					join INTEGRAL..CLIENTS CL on CCL.CLIENT_CODE = CL.CLIENT_CODE
 					where cast(CONTRACT_CODE as varchar(10)) = (?)
 """
 
