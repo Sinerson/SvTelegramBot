@@ -10,15 +10,16 @@ import pyodbc
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import ReplyKeyboardMarkup, Message, Contact, ContentType, Location, message
 from aiogram.utils.markdown import hlink
+from aiogram.utils.keyboard import KeyboardBuilder, ReplyKeyboardBuilder
 
 
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
-    APPLICATION_NAME, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST, TOKEN, APPID
+    APPLICATION_NAME, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST, TOKEN, APPID, AUTOCOMMIT
 
 from sql import checkPhone, checkUserExists, addUser, updateUser, delPhone, delUser, getContractCode, getBalance,\
     getPayments, getLastPayment, setSendStatus, getTechClaims, getContractCodeByUserId, getLastTechClaims,\
-    getClientCodeByContractCode, getPromisedPayDate
+    getClientCodeByContractCode, getPromisedPayDate, getInetAccountPassword, getPersonalAreaPassword
 # Импортируем адреса офисов и режим работы
 from office import office_address
 
@@ -32,7 +33,7 @@ router = Router()
 dp.include_router(router)
 
 # Объявим строку подключения к БД
-conn_str = ';'.join([DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, APPLICATION_NAME])
+conn_str = ';'.join([DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, AUTOCOMMIT,CLIENT_HOST_NAME, CLIENT_HOST_PROC, APPLICATION_NAME])
 
 #Получим список пользователей с расширенными правами
 manager_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
@@ -62,7 +63,8 @@ async def start(message):
                         [types.KeyboardButton(text='Мой баланс', request_contact=True)],
                         [types.KeyboardButton(text='Мои услуги')],
                         [types.KeyboardButton(text='Мои заявки в тех.поддержку')],
-                        [types.KeyboardButton(text='Получить "Доверительный платеж"')]
+                        [types.KeyboardButton(text='Получить "Доверительный платеж"')],
+                        [types.KeyboardButton(text='Пароль от интернета')]
                     ]
                     keyboard = ReplyKeyboardMarkup(keyboard=button_phone, resize_keyboard=True)
                     await bot.send_message(message.from_user.id, 'Выберите нужный пункт ниже', reply_markup=keyboard)
@@ -274,33 +276,59 @@ async def ClientServices(message: types.Message):
     except Exception as e:
         print(e)
 
-def getClientServicesList(userid):
-    print(userid)
-    contract_code = f_isC_Code(str(userid))
-    print(contract_code)
-    result = f_getClientCode(str(contract_code[0]))
-    print(result)
-    cl_code = result[0][0]
-    cl_type_code = result[0][1]
-    conn = pyodbc.connect(conn_str)
+
+@dp.message(lambda message: message.text == 'Пароль от интернета')
+async def InetPassword(message: types.Message):
     try:
-        serv_list = []
-        cursor = conn.cursor()
-        cursor.execute('SET CHAINED OFF')
-        cursor.execute(f'exec MEDIATE..spWeb_GetClientServices {contract_code[0]}, {cl_code}, {cl_type_code}')
-        for row in cursor.fetchall():
-            columns = [column[0] for column in cursor.description]
-            serv_list.append(dict(zip(columns, row)))
-        cursor.execute('SET CHAINED ON')
-        cursor.close()
-        conn.close()
-        return serv_list
+        pass_list = f_getInetAccountPassword(message.from_user.id)
+        if not pass_list:
+            await bot.send_message(message.from_user.id, 'Пароли не найдены!')
+        else:
+            await bot.send_message(message.from_user.id, "Пароль для настройки PPPoE подключения:\n")
+            for row in pass_list:
+                await bot.send_message(message.from_user.id, f'Имя пользователя: {row["LOGIN"]}, пароль: {row["PASSWORD"]}\n')
     except Exception as e:
         print(e)
 
 
-
 # Func list ON
+def f_getInetAccountPassword(user_id):
+    contract_code = f_isC_Code(user_id)
+    try:
+        pass_list = []
+        conn = pyodbc.connect(conn_str, autocommit=True)
+        cursor = conn.cursor()
+        cursor.execute(getInetAccountPassword, contract_code)
+        for row in cursor.fetchall():
+            columns = [column[0] for column in cursor.description]
+            pass_list.append(dict(zip(columns, row)))
+        cursor.close()
+        conn.close()
+        return pass_list
+    except Exception as e:
+        print(e)
+
+
+def getClientServicesList(userid):
+    contract_code = f_isC_Code(str(userid))
+    result = f_getClientCode(str(contract_code[0]))
+    cl_code = result[0][0]
+    cl_type_code = result[0][1]
+    try:
+        serv_list = []
+        conn = pyodbc.connect(conn_str, autocommit=True)
+        cursor = conn.cursor()
+        cursor.execute(f'exec MEDIATE..spWeb_GetClientServices {contract_code[0]}, {cl_code}, {cl_type_code}')
+        for row in cursor.fetchall():
+            columns = [column[0] for column in cursor.description]
+            serv_list.append(dict(zip(columns, row)))
+        cursor.close()
+        conn.close()
+        return serv_list
+    except BaseException as e:
+        print(e)
+
+
 def f_contract_code(phonenumber):
     while True:
         conn = pyodbc.connect(conn_str)
@@ -496,12 +524,10 @@ def f_getClientCode(contract_code):
 
 def f_setPromesedPay(client_code):
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = pyodbc.connect(conn_str, autocommit=True)
         cursor = conn.cursor()
-        cursor.execute('SET CHAINED OFF')
-        cursor.execute(f'exec MEDIATE..spMangoSetPromisedPay {client_code[0]}')
+        cursor.execute(f'exec MEDIATE..spMangoSetPromisedPay {client_code[0][0]}')
         exec_result = cursor.fetchall()
-        cursor.execute('SET CHAINED ON')
         cursor.close()
         conn.close()
         return exec_result
@@ -512,7 +538,7 @@ def f_getPromisedPayDate(client_code):
     try:
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute(getPromisedPayDate, client_code)
+        cursor.execute(getPromisedPayDate, client_code[0][0])
         result = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -635,7 +661,7 @@ async def text(message):
                 isPay_money = value['PAY_MONEY']
                 print(index, f'Пользователь {isUser_id} произвел оплату на сумму {isPay_money}')
                 await bot.send_message(isUser_id, f'Поступила оплата на сумму {round(isPay_money, 2)} руб.')
-    elif user_message in ['главрыба!']:
+    elif user_message.lower() in ['главрыба!', 'Главрыба', 'главрыба']:
         await message.answer(
             '«Абырва́лг» — второе (нередко цитируется как первое) слово, сказанное героем повести Михаила'
             ' Булгакова «Собачье сердце» Шариковым после его «оживления» в человеческом облике.'

@@ -164,8 +164,22 @@ getClientCodeByContractCode = \
 """
 
 getPromisedPayDate = \
-	"""
+"""
 					select cast(DATE_CHANGE as smalldatetime) as DATE_CHANGE
 					from INTEGRAL..CLIENT_PROPERTIES
 					where CLIENT_CODE = (?) and PROP_CODE = 823
+"""
+
+getInetAccountPassword = \
+"""
+					select LOGIN, MEDIATE.dbo.ContractPasswordDecode(PASSWORD) as PASSWORD
+					from RADIUS..INET_ACCOUNTS
+					where CONTRACT_CODE = (?)
+"""
+
+getPersonalAreaPassword = \
+"""
+select PIN, PIN_PASSWORD
+from INTEGRAL..CLIENT_PINS
+where CLIENT_CODE = (?)
 """
