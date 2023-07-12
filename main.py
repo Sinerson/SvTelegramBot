@@ -48,6 +48,7 @@ current_weather = 'https://api.openweathermap.org/data/2.5/weather'
 # Объявили ветку для работы по команде 'start'
 @dp.message(commands=['start'])
 async def start(message):
+    builder = ReplyKeyboardBuilder()
     chat_id = message.chat.id
     user_id = message.from_user.id
     # проверим существование записи с user_id
@@ -59,19 +60,26 @@ async def start(message):
             for row in check_grant:
                 grant_result = row[0]
                 if grant_result == "1":
-                    button_phone = [
-                        [types.KeyboardButton(text='Мой баланс', request_contact=True)],
-                        [types.KeyboardButton(text='Мои услуги')],
-                        [types.KeyboardButton(text='Мои заявки в тех.поддержку')],
-                        [types.KeyboardButton(text='Получить "Доверительный платеж"')],
-                        [types.KeyboardButton(text='Пароль от интернета')]
-                    ]
-                    keyboard = ReplyKeyboardMarkup(keyboard=button_phone, resize_keyboard=True)
+                    builder.row( # 1 строка кнопок
+                        types.KeyboardButton(text='\U0001F4B2 Мой баланс', request_contact=True),
+                        types.KeyboardButton(text='\U0001F50C Мои услуги')
+                    )
+                    builder.row( # 2 строка
+                        types.KeyboardButton(text='\U0001F4DD Мои заявки в тех.поддержку')
+                    )
+                    builder.row( # 3 строка
+                        types.KeyboardButton(text='\U0001F9ED Получить "Доверительный платеж"')
+                    )
+                    builder.row( # 4 строка
+                        types.KeyboardButton(text='\U0001F511 Пароль от интернета'),
+                        types.KeyboardButton(text='\U0001F5DD Пароль от ЛК')
+                    )
+                    keyboard = builder.as_markup(resize_keyboard=True)
                     await bot.send_message(message.from_user.id, 'Выберите нужный пункт ниже', reply_markup=keyboard)
                 elif grant_result == "0" or grant_result is None:
                     button_phone = [[types.KeyboardButton(text="Отправить телефон", request_contact=True)]]
                     keyboard = ReplyKeyboardMarkup(keyboard=button_phone, resize_keyboard=True)
-                    await bot.send_message(message.from_user.id, 'Вы еще не передали свой номер телефона,'
+                    await bot.send_message(message.from_user.id, 'Проверим существование Вашего сотового номера в нашей биллнговой системе,'
                                                                  ' отправьте нам его нажав кнопку внизу.'
                                            , reply_markup=keyboard)
         elif check_grant == "Null" or check_grant is None:
@@ -84,10 +92,10 @@ async def start(message):
     elif str(exist[0]) == "0" or str(exist[0]) == "Null" or user_id != chat_id:
         f_addUser(user_id, chat_id)  # добавим нового пользователя
         await bot.send_message(
-            message.chat.id,
+            message.from_user.id,
             'Этот бот может отобразить баланс вашего лицевого счета. Для этого нажмите кнопку ниже.'
-            'Чтобы бот вам ответил, номер вашего телефона должен быть зарегистрирован в личном кабинете'
-            ' абонента https://bill.sv-tel.ru '
+            'Чтобы бот вам ответил, номер вашего телефона должен быть зарегистрирован в [личном кабинете'
+            ' абонента] (https://bill.sv-tel.ru)', parse_mode='Markdown'
         )
         await bot.send_message(
             message.from_user.id, "Сохранили ваш Telegram ID в базу, нажмите /start для обновления"
@@ -129,7 +137,7 @@ async def contact(message):  # Проверка отправителя и отп
                                                                    'Ваш лицевой счет: ' + "%d" % (row[1]))
                                             balance = f_get_balance(row[0])
                                             try:
-                                                with open(r'log\request_log.txt', 'a+') as f:
+                                                with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
                                                     f.write("Пользователь " + phonenumber + " Chat ID:" + str(
                                                         message.chat.id) + " User_ID: "
                                                             + str(user_id) + " Contract_code: " + "%d" % (
@@ -142,7 +150,7 @@ async def contact(message):  # Проверка отправителя и отп
                                                 await bot.send_message(message.chat.id, 'Ваш текущий баланс: ' + str(
                                                     round(row[0], 2)) + ' руб.' + '\n')
                                         except:
-                                            with open(r'log\request_log.txt', 'a+') as f:
+                                            with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
                                                 f.write('НЕИЗВЕСТНЫЙ пользователь User_ID: ' + str(
                                                     user_id) + ' Contract_code: ' + '%d' % (
                                                             row[
@@ -198,7 +206,7 @@ async def contact(message):  # Проверка отправителя и отп
     else:
         await bot.send_message(message.chat.id, 'Похоже вы пытаетесь запросить баланс другого пользователя.')
         try:
-            f = open(r'log\request_log.txt', 'a+')
+            f = open(r'log\request_log.txt', 'a+', encoding="utf-8")
             f.write("Пользователь " + "User_ID: " + str(message.chat.id) + ' запрашивает чужой баланс в: ' + str(
                 nowDateTime) + '\n')
             f.close()
@@ -206,7 +214,7 @@ async def contact(message):  # Проверка отправителя и отп
             print('Что-то пошло не так в блоке обработке лога...')
 
 
-@dp.message(lambda message: message.text == 'Мои заявки в тех.поддержку')
+@dp.message(lambda message: message.text == '\U0001F4DD Мои заявки в тех.поддержку')
 async def tech_claims(message: types.Message):
     user_id = message.from_user.id
     contract_code = f_isC_Code(str(user_id))
@@ -227,6 +235,9 @@ async def tech_claims(message: types.Message):
                                                 f'Адрес: {value["ADDRESS_NAME"]}\n'
                                                 f'Контактный телефон: {value["PHONE"]}\n'
                                        )
+            with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает заявки в тех.поддержку в: {str(nowDateTime)}\n')
+                f.close()
         elif claimslist is None:
             await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
                                             ' Если вы уверены, что это не так, обратитесь в техническую поддержку по'
@@ -236,7 +247,7 @@ async def tech_claims(message: types.Message):
                                         ' Отправьте нам свой телефон, после чего повторно запросите заявки.')
 
 
-@dp.message(lambda message: message.text == 'Получить "Доверительный платеж"')
+@dp.message(lambda message: message.text == '\U0001F9ED Получить "Доверительный платеж"')
 async def setPromisedPay(message: types.Message):
     try:
         contract_code = f_isC_Code(str(message.from_user.id))
@@ -256,6 +267,9 @@ async def setPromisedPay(message: types.Message):
                 prop_date = f_getPromisedPayDate(client_code)
                 await bot.send_message(message.from_user.id,'С предыдущего запроса "доверительного платежа" прошло менее месяца.\n'
                                                             f' Дата предыдущего "доверительного платежа": {prop_date}')
+            with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает доверительный платеж в: {str(nowDateTime)}\n')
+                f.close()
         else:
             print('Получен пустой exec_result')
     except Exception as e:
@@ -263,7 +277,7 @@ async def setPromisedPay(message: types.Message):
         await bot.send_message(message.from_user.id, 'Не удалось получить доверительный платеж')
 
 
-@dp.message(lambda message: message.text == 'Мои услуги')
+@dp.message(lambda message: message.text == '\U0001F50C Мои услуги')
 async def ClientServices(message: types.Message):
     try:
         serv_list = getClientServicesList(message.from_user.id)
@@ -273,20 +287,44 @@ async def ClientServices(message: types.Message):
             await bot.send_message(message.from_user.id, 'Перечень услуг: \n')
             for elem in serv_list:
                 await bot.send_message(message.from_user.id, f'{elem["TARIFF_NAME"]}, стоимостью {round(float(elem["TARIFF_COST"]),2)} руб.\n')
+            with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает услуги в: {str(nowDateTime)}\n')
+                f.close()
     except Exception as e:
         print(e)
 
 
-@dp.message(lambda message: message.text == 'Пароль от интернета')
+@dp.message(lambda message: message.text == '\U0001F511 Пароль от интернета')
 async def InetPassword(message: types.Message):
     try:
         pass_list = f_getInetAccountPassword(message.from_user.id)
         if not pass_list:
             await bot.send_message(message.from_user.id, 'Пароли не найдены!')
         else:
-            await bot.send_message(message.from_user.id, "Пароль для настройки PPPoE подключения:\n")
+            await bot.send_message(message.from_user.id, "Данные настройки PPPoE подключения:\n")
             for row in pass_list:
                 await bot.send_message(message.from_user.id, f'Имя пользователя: {row["LOGIN"]}, пароль: {row["PASSWORD"]}\n')
+            with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает пароль Интернет в: {str(nowDateTime)}\n')
+                f.close()
+    except Exception as e:
+        print(e)
+
+
+@dp.message(lambda message: message.text == '\U0001F5DD Пароль от ЛК')
+async def PersonalArea(message: types.Message):
+    try:
+        pass_list = f_getPersonalAreaPassword(message.from_user.id)
+        if not pass_list:
+            await bot.send_message(message.from_user.id, 'Данные для входа не найдены! Обратитесь в [техническую поддержку](+78314577777)', parse_mode='Markdown')
+        else:
+            await bot.send_message(message.from_user.id, "Данные для входа в ЛК:\n")
+            for row in pass_list:
+                await bot.send_message(message.from_user.id, f'Имя пользователя: {row["PIN"]}, пароль: {row["PIN_PASSWORD"]}\n')
+            with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает пароль от ЛК в: {str(nowDateTime)}\n')
+                f.close()
+
     except Exception as e:
         print(e)
 
@@ -299,6 +337,25 @@ def f_getInetAccountPassword(user_id):
         conn = pyodbc.connect(conn_str, autocommit=True)
         cursor = conn.cursor()
         cursor.execute(getInetAccountPassword, contract_code)
+        for row in cursor.fetchall():
+            columns = [column[0] for column in cursor.description]
+            pass_list.append(dict(zip(columns, row)))
+        cursor.close()
+        conn.close()
+        return pass_list
+    except Exception as e:
+        print(e)
+
+
+def f_getPersonalAreaPassword(user_id):
+    contract_code = f_isC_Code(user_id)
+    result = f_getClientCode(str(contract_code[0]))
+    cl_code = result[0][0]
+    try:
+        pass_list = []
+        conn = pyodbc.connect(conn_str, autocommit=True)
+        cursor = conn.cursor()
+        cursor.execute(getPersonalAreaPassword, cl_code)
         for row in cursor.fetchall():
             columns = [column[0] for column in cursor.description]
             pass_list.append(dict(zip(columns, row)))
@@ -685,7 +742,7 @@ async def text(message):
         await bot.send_message(message.from_user.id, f'{message}')
 
     else:
-        with open(r'log\user_massages.txt', 'a+') as f:
+        with open(r'log\user_massages.txt', 'a+', encoding="utf-8") as f:
             f.write(f'Пользователь Chat ID: {str(message.chat.id)} User_ID: {str(message.from_user.id)} написал:\n'
                     f'{message.text}\n')
             f.close()

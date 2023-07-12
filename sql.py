@@ -179,7 +179,7 @@ getInetAccountPassword = \
 
 getPersonalAreaPassword = \
 """
-select PIN, PIN_PASSWORD
+select rtrim(PIN) as PIN, rtrim(PIN_PASSWORD) as PIN_PASSWORD
 from INTEGRAL..CLIENT_PINS
-where CLIENT_CODE = (?)
+where CLIENT_CODE = cast((?) as int)
 """
