@@ -2,29 +2,29 @@ import asyncio
 import datetime
 import logging
 import time
-import http.client
 import requests
 from requests import HTTPError
-import aiogram
 import pyodbc
 from aiogram import Bot, Dispatcher, types, Router
-from aiogram.types import ReplyKeyboardMarkup, Message, Contact, ContentType, Location, message
+from aiogram.types import ReplyKeyboardMarkup, Message, message
 from aiogram.utils.markdown import hlink
-from aiogram.utils.keyboard import KeyboardBuilder, ReplyKeyboardBuilder
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.dispatcher.fsm.storage.memory import MemoryStorage
 
+storage = MemoryStorage
 
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
     APPLICATION_NAME, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST, TOKEN, APPID, AUTOCOMMIT
 
-from sql import checkPhone, checkUserExists, addUser, updateUser, delPhone, delUser, getContractCode, getBalance,\
-    getPayments, getLastPayment, setSendStatus, getTechClaims, getContractCodeByUserId, getLastTechClaims,\
+from sql import checkPhone, checkUserExists, addUser, updateUser, getContractCode, getBalance,\
+    getPayments, getLastPayment, setSendStatus, getTechClaims, getContractCodeByUserId,\
     getClientCodeByContractCode, getPromisedPayDate, getInetAccountPassword, getPersonalAreaPassword
 # Импортируем адреса офисов и режим работы
 from office import office_address
 
 # Включим логирование
-#logging.basicConfig(level=logging.DEBUG, filename="DEBUG_log.log", filemode="a", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(level=logging.DEBUG, filename="DEBUG_log.log", filemode="a", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # Отдадим боту его токен
 bot = Bot(TOKEN)  # Для aiogram
@@ -43,7 +43,6 @@ admin_ids = {v:i for i, v in enumerate(eval(ADMIN_ID_LIST))}
 
 #Для получения погоды с сайта openweathermap.org
 current_weather = 'https://api.openweathermap.org/data/2.5/weather'
-
 
 # Объявили ветку для работы по команде 'start'
 @dp.message(commands=['start'])
@@ -217,7 +216,7 @@ async def contact(message):  # Проверка отправителя и отп
 @dp.message(lambda message: message.text == '\U0001F4DD Мои заявки в тех.поддержку')
 async def tech_claims(message: types.Message):
     user_id = message.from_user.id
-    contract_code = f_isC_Code(str(user_id))
+    contract_code = f_getContract_Code(str(user_id))
     if contract_code[0] is not None:
         claimslist = f_isTechClaims(contract_code)
         if claimslist is not None:
@@ -240,8 +239,8 @@ async def tech_claims(message: types.Message):
                 f.close()
         elif claimslist is None:
             await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
-                                            ' Если вы уверены, что это не так, обратитесь в техническую поддержку по'
-                                   +'[ телефону +78314577777](tel:+78314577777)', parse_mode='Markdown')
+                                            ' Если вы уверены, что это не так, обратитесь в техническую поддержку по '
+                                   +'[телефону +78314577777](tel:+78314577777)', parse_mode='Markdown')
     elif contract_code[0] is None:
         await bot.send_message(user_id, 'Не можем определить ваш номер договора по номеру телефона.'
                                         ' Отправьте нам свой телефон, после чего повторно запросите заявки.')
@@ -250,7 +249,7 @@ async def tech_claims(message: types.Message):
 @dp.message(lambda message: message.text == '\U0001F9ED Получить "Доверительный платеж"')
 async def setPromisedPay(message: types.Message):
     try:
-        contract_code = f_isC_Code(str(message.from_user.id))
+        contract_code = f_getContract_Code(str(message.from_user.id))
         client_code = f_getClientCode(str(contract_code[0]))
         exec_result = f_setPromesedPay(client_code)
         if exec_result is not None:
@@ -280,7 +279,7 @@ async def setPromisedPay(message: types.Message):
 @dp.message(lambda message: message.text == '\U0001F50C Мои услуги')
 async def ClientServices(message: types.Message):
     try:
-        serv_list = getClientServicesList(message.from_user.id)
+        serv_list = f_getClientServicesList(message.from_user.id)
         if not serv_list:
             print("Данные не вернулись")
         else:
@@ -331,7 +330,7 @@ async def PersonalArea(message: types.Message):
 
 # Func list ON
 def f_getInetAccountPassword(user_id):
-    contract_code = f_isC_Code(user_id)
+    contract_code = f_getContract_Code(user_id)
     try:
         pass_list = []
         conn = pyodbc.connect(conn_str, autocommit=True)
@@ -348,7 +347,7 @@ def f_getInetAccountPassword(user_id):
 
 
 def f_getPersonalAreaPassword(user_id):
-    contract_code = f_isC_Code(user_id)
+    contract_code = f_getContract_Code(user_id)
     result = f_getClientCode(str(contract_code[0]))
     cl_code = result[0][0]
     try:
@@ -366,8 +365,8 @@ def f_getPersonalAreaPassword(user_id):
         print(e)
 
 
-def getClientServicesList(userid):
-    contract_code = f_isC_Code(str(userid))
+def f_getClientServicesList(userid):
+    contract_code = f_getContract_Code(str(userid))
     result = f_getClientCode(str(contract_code[0]))
     cl_code = result[0][0]
     cl_type_code = result[0][1]
@@ -525,7 +524,6 @@ async def f_set_SendStatus(status, time, paid_money,user_id):
         cursor.close()
         conn.close()
     except pyodbc.Error as e:
-        cursor.rollback()
         logging.warning(e)
         await bot.send_message(124902528,'Не удалось записать данные по отправке уведомления')
 
@@ -548,7 +546,7 @@ def f_isTechClaims(contract_code):
         logging.warning(e)
         return -1
 
-def f_isC_Code(user_id):
+def f_getContract_Code(user_id):
     try:
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
@@ -603,7 +601,7 @@ def f_getPromisedPayDate(client_code):
     except Exception as e:
         print(e)
 
-def get_params(lat, lon):
+def weather_request_params(lat, lon):
 	lat_conv = float(lat)
 	lon_conv = float(lon)
 	params = {'lat':f'{lat_conv}', 'lon':f'{lon_conv}','appid':APPID, 'units': 'metric', 'lang': 'ru'}
@@ -768,7 +766,7 @@ async def voice(message):
 async def location_message(message):
 	lat = message.location.latitude
 	lon = message.location.longitude
-	params_str = get_params(lat, lon)
+	params_str = weather_request_params(lat, lon)
 	weather_now = get_forecast_weather(current_weather, params_str)
 	await message.reply(f'Погода для данной локации: {weather_now}\n\n')
 

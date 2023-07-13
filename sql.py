@@ -5,10 +5,10 @@ checkPhone = """select grant_phone
 			"""
 checkUserExists = """select E = case
 					when exists(
-					select    phonenumber
-					from    SV..TBP_TELEGRAM_BOT
-					where     user_id = (?)
-					)
+								select    phonenumber
+								from    SV..TBP_TELEGRAM_BOT
+								where     user_id = (?)
+								)
 					then 1
 					else 0
 					end"""
@@ -179,7 +179,7 @@ getInetAccountPassword = \
 
 getPersonalAreaPassword = \
 """
-select rtrim(PIN) as PIN, rtrim(PIN_PASSWORD) as PIN_PASSWORD
-from INTEGRAL..CLIENT_PINS
-where CLIENT_CODE = cast((?) as int)
+					select rtrim(PIN) as PIN, rtrim(PIN_PASSWORD) as PIN_PASSWORD
+					from INTEGRAL..CLIENT_PINS
+					where CLIENT_CODE = cast((?) as int)
 """
