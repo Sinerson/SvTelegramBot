@@ -207,7 +207,7 @@ async def contact(message):  # Проверка отправителя и отп
         try:
             f = open(r'log\request_log.txt', 'a+', encoding="utf-8")
             f.write("Пользователь " + "User_ID: " + str(message.chat.id) + ' запрашивает чужой баланс в: ' + str(
-                nowDateTime) + '\n')
+                datetime.datetime.now()) + '\n')
             f.close()
         except:
             print('Что-то пошло не так в блоке обработке лога...')
@@ -235,7 +235,7 @@ async def tech_claims(message: types.Message):
                                                 f'Контактный телефон: {value["PHONE"]}\n'
                                        )
             with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
-                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает заявки в тех.поддержку в: {str(nowDateTime)}\n')
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает заявки в тех.поддержку в: {str(datetime.datetime.now())}\n')
                 f.close()
         elif claimslist is None:
             await bot.send_message(user_id, 'За последнюю неделю не было создано ни одной заявки.\n'
@@ -267,7 +267,7 @@ async def setPromisedPay(message: types.Message):
                 await bot.send_message(message.from_user.id,'С предыдущего запроса "доверительного платежа" прошло менее месяца.\n'
                                                             f' Дата предыдущего "доверительного платежа": {prop_date}')
             with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
-                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает доверительный платеж в: {str(nowDateTime)}\n')
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает доверительный платеж в: {str(datetime.datetime.now())}\n')
                 f.close()
         else:
             print('Получен пустой exec_result')
@@ -287,7 +287,7 @@ async def ClientServices(message: types.Message):
             for elem in serv_list:
                 await bot.send_message(message.from_user.id, f'{elem["TARIFF_NAME"]}, стоимостью {round(float(elem["TARIFF_COST"]),2)} руб.\n')
             with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
-                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает услуги в: {str(nowDateTime)}\n')
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает услуги в: {str(datetime.datetime.now())}\n')
                 f.close()
     except Exception as e:
         print(e)
@@ -304,7 +304,7 @@ async def InetPassword(message: types.Message):
             for row in pass_list:
                 await bot.send_message(message.from_user.id, f'Имя пользователя: {row["LOGIN"]}, пароль: {row["PASSWORD"]}\n')
             with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
-                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает пароль Интернет в: {str(nowDateTime)}\n')
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает пароль Интернет в: {str(datetime.datetime.now())}\n')
                 f.close()
     except Exception as e:
         print(e)
@@ -321,7 +321,7 @@ async def PersonalArea(message: types.Message):
             for row in pass_list:
                 await bot.send_message(message.from_user.id, f'Имя пользователя: {row["PIN"]}, пароль: {row["PIN_PASSWORD"]}\n')
             with open(r'log\request_log.txt', 'a+', encoding="utf-8") as f:
-                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает пароль от ЛК в: {str(nowDateTime)}\n')
+                f.write(f'Пользователь User_ID: {str(message.from_user.id)} запрашивает пароль от ЛК в: {str(datetime.datetime.now())}\n')
                 f.close()
 
     except Exception as e:
@@ -329,7 +329,7 @@ async def PersonalArea(message: types.Message):
 
 
 # Func list ON
-def f_getInetAccountPassword(user_id):
+def f_getInetAccountPassword(user_id: str) -> list:
     contract_code = f_getContract_Code(user_id)
     try:
         pass_list = []
@@ -346,7 +346,7 @@ def f_getInetAccountPassword(user_id):
         print(e)
 
 
-def f_getPersonalAreaPassword(user_id):
+def f_getPersonalAreaPassword(user_id: str) -> list:
     contract_code = f_getContract_Code(user_id)
     result = f_getClientCode(str(contract_code[0]))
     cl_code = result[0][0]
@@ -365,7 +365,7 @@ def f_getPersonalAreaPassword(user_id):
         print(e)
 
 
-def f_getClientServicesList(userid):
+def f_getClientServicesList(userid: str) -> list:
     contract_code = f_getContract_Code(str(userid))
     result = f_getClientCode(str(contract_code[0]))
     cl_code = result[0][0]
@@ -638,7 +638,7 @@ def get_forecast_weather(site_url, query_params):
                   f'Влажность: {main.get("humidity")}%\n'
                   f'Видимость: {visibility} метров\n'
                   f'Ветер: скорость {wind.get("speed")} м/с, направление {wind_direction(wind.get("deg"))},'
-                    f' порывы до {wind.get("gust") if wind.get("gust") is not None else "без порывов"} м/с\n'
+                    f' порывы до: {wind.get("gust") if wind.get("gust") is not None else "без порывов"} м/с\n'
                   )
         else:
             print(f'Ошибка получения данных, код: {response.status_code}')
@@ -744,22 +744,24 @@ async def text(message):
             f.write(f'Пользователь Chat ID: {str(message.chat.id)} User_ID: {str(message.from_user.id)} написал:\n'
                     f'{message.text}\n')
             f.close()
-        await message.answer('!АБЫРВАЛГ')
+        await message.answer("Этот бот не воспринимает команды, вводимые текстом, для использования функционала"
+                             " выберите одну из кнопок виртуальной клавиатуры.")
+        await start(message)
 
 
 @dp.message(content_types=['audio'])
 async def audio(message):
-    await message.reply('''Let's Music!!!''')
+    await message.reply("Аудиозапись")
 
 
 @dp.message(content_types=['photo'])
 async def photo(message):
-    await message.reply('красиво')
+    await message.reply("Фото/изображение")
 
 
 @dp.message(content_types=['voice'])
 async def voice(message):
-    await message.reply("Я не умею в войсы")
+    await message.reply("Аудиозапись")
 
 
 @dp.message(content_types=['location'])

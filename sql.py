@@ -172,9 +172,10 @@ getPromisedPayDate = \
 
 getInetAccountPassword = \
 """
-					select LOGIN, MEDIATE.dbo.ContractPasswordDecode(PASSWORD) as PASSWORD
-					from RADIUS..INET_ACCOUNTS
-					where CONTRACT_CODE = (?)
+					select rtrim(LOGIN) as LOGIN, MEDIATE.dbo.ContractPasswordDecode(rtrim(PASSWORD)) as PASSWORD
+					from INTEGRAL..OTHER_DEVICES OD
+					join INTEGRAL..CONTRACT_CLIENTS CCL on OD.CLIENT_CODE = CCL.CLIENT_CODE
+					where CONTRACT_CODE = (?) and OD.TYPE_CODE = 14
 """
 
 getPersonalAreaPassword = \
