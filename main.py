@@ -15,7 +15,7 @@ storage = MemoryStorage
 
 # Импортируем настройки
 from config import DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, CLIENT_HOST_NAME, CLIENT_HOST_PROC, \
-    APPLICATION_NAME, BANK_TOKEN, CHANNEL_ID, USERS_ID_LIST, ADMIN_ID_LIST, TOKEN, APPID, AUTOCOMMIT
+    APPLICATION_NAME, BANK_TOKEN, CHANNEL_ID, MANAGER_ID_LIST, ADMIN_ID_LIST, TOKEN, APPID, AUTOCOMMIT
 
 from sql import checkPhone, checkUserExists, addUser, updateUser, getContractCode, getBalance,\
     getPayments, getLastPayment, setSendStatus, getTechClaims, getContractCodeByUserId,\
@@ -36,7 +36,7 @@ dp.include_router(router)
 conn_str = ';'.join([DRIVER, SERVER, PORT, USER, PASSW, LANGUAGE, AUTOCOMMIT,CLIENT_HOST_NAME, CLIENT_HOST_PROC, APPLICATION_NAME])
 
 #Получим список пользователей с расширенными правами
-manager_ids = {v:i for i, v in enumerate(eval(USERS_ID_LIST))}
+manager_ids = {v:i for i, v in enumerate(eval(MANAGER_ID_LIST))}
 
 #Получим список пользователей с админскими правами
 admin_ids = {v:i for i, v in enumerate(eval(ADMIN_ID_LIST))}
@@ -761,7 +761,7 @@ async def photo(message):
 
 @dp.message(content_types=['voice'])
 async def voice(message):
-    await message.reply("Аудиозапись")
+    await message.reply("Голосовое")
 
 
 @dp.message(content_types=['location'])
